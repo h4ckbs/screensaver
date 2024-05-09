@@ -1,0 +1,184 @@
+<html>
+    <head>
+<style type="text/css">
+h3, h5 {
+    text-align: center;
+    margin: 8px;
+}
+
+body {
+    font-family: monospace;
+    color: white;
+    background: #333132;
+    margin: 1px;
+}
+
+div#container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+span#logo {
+    width: 181.5px;
+    height: 43px;
+    background-image: url('./logo.svg');
+    background-size: contain;
+    display: block;
+    position: absolute;
+}
+
+#donations {
+    padding: 4px;
+    width: 20%;
+    height: calc(100% - 8px);
+    float: right;
+    display: flex;
+    flex-direction: column;
+}
+
+.donation {
+    border: 1px solid white;
+    margin-bottom: 4px;
+}
+
+.bar {
+    height: 4px;
+    width: 100%;
+    background: white;
+}
+
+.message {
+    padding: 2px;
+    word-break: break-all;
+}
+</style>
+    </head>
+    <body>
+        <div id="container">
+            <span id="logo"></span>
+            <div id="donations">
+
+                <div style="margin-top: auto; order: 99;">
+                    <h3>SCAN TO TIP SATS</h3>
+                    <img style="margin: 0 auto; display: block;" src="./donate.svg"/>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            const span = document.querySelector('span#logo');
+            const div = document.querySelector('div#container');
+            const donations = document.querySelector('div#donations');
+
+            const MAX_X = div.offsetWidth - span.offsetWidth;
+            const MAX_Y = div.offsetHeight - span.offsetHeight;
+
+            const speed = 0.2;
+
+            let x = 0;
+            let y = 0;
+            let angle = Math.PI / 4;
+            let hue = 0;
+
+            let previousTimeStamp;
+
+            function step(timestamp) {
+                if (previousTimeStamp === undefined) {
+                    previousTimeStamp = timestamp;
+                }
+                const elapsed = timestamp - previousTimeStamp;
+                let changeColor = false;
+
+                if (previousTimeStamp !== timestamp) {
+                    x += Math.sin(angle) * elapsed * speed;
+                    y += Math.cos(angle) * elapsed * speed;
+
+                    if (x < 0) {
+                        // Left
+                        console.log('left');
+
+                        changeColor = true;
+                        angle = 2 * Math.PI - angle;
+                        x = 0;
+                    } else if (x > MAX_X) {
+                        // Right
+                        console.log('right');
+
+                        changeColor = true;
+                        angle = 2 * Math.PI - angle;
+                        x = MAX_X;
+                    } else if (y < 0) {
+                        // Bottom
+                        console.log('bottom');
+
+                        changeColor = true;
+                        angle = Math.PI - angle;
+                        y = 0;
+                    } else if (y > MAX_Y) {
+                        // Top
+                        console.log('top');
+
+                        changeColor = true;
+                        angle = Math.PI - angle;
+                        y = MAX_Y;
+                    }
+                }
+
+                if (changeColor) {
+                    hue += 45;
+                    span.style.filter = `hue-rotate(${hue}deg)`;
+                }
+
+                span.style.bottom = `${y}px`;
+                span.style.left = `${x}px`;
+                
+                previousTimeStamp = timestamp;
+                window.requestAnimationFrame(step);
+            }
+            window.requestAnimationFrame(step);
+
+            function htmlToElement(html) {
+                const template = document.createElement('template');
+                html = html.trim(); // Never return a text node of whitespace as the result
+                template.innerHTML = html;
+                return template.content.firstChild;
+            }
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            function getDonationHtml(amount, msg) {
+                return `
+                    <div class="donation">
+                        <div class="bar"></div>
+                        <div class="message"><b>${amount} SAT</b> - ${escapeHtml(msg)}</div>
+                    </div>
+                `;
+            }
+
+            const ws = new WebSocket("ws://localhost:2347/ws");
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log(data);
+                const tick = data.amount / 10 / 100 * 1000;
+                let count = 100;
+                const node = htmlToElement(getDonationHtml(data.amount, data.description));
+                const interval = setInterval(() => {
+                    if (--count == 0) {
+                        node.remove();
+                        clearInterval(interval);
+                    } else {
+                        node.querySelector('.bar').style.width = `${count}%`;
+                    }
+                }, tick);
+
+                donations.append(node);                
+            };
+        </script>
+    </body>
+</html>
