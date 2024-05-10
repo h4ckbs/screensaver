@@ -60,8 +60,8 @@ span#logo {
             <div id="donations">
 
                 <div style="margin-top: auto; order: 99;">
-                    <h3>SCAN TO TIP SATS</h3>
-                    <img style="margin: 0 auto; display: block;" src="./donate.svg"/>
+                    <h3>Mandaci qualche satoshi :)</h3>
+                    <img style="margin: 0 auto; display: block; width: 150px; height: 150px" src="./download.png"/>
                 </div>
             </div>
         </div>
@@ -156,18 +156,18 @@ span#logo {
                 return `
                     <div class="donation">
                         <div class="bar"></div>
-                        <div class="message"><b>${amount} SAT</b> - ${escapeHtml(msg)}</div>
+                        <div class="message"><b>${amount/1000} sats</b> - ${escapeHtml(msg)}</div>
                     </div>
                 `;
             }
 
-            const ws = new WebSocket("ws://localhost:2347/ws");
+            const ws = new WebSocket("ws://51.15.54.153:8020/ws");
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 console.log(data);
-                const tick = data.amount / 10 / 100 * 1000;
+                const tick = data.amount / 50;
                 let count = 100;
-                const node = htmlToElement(getDonationHtml(data.amount, data.description));
+                const node = htmlToElement(getDonationHtml(data.amount, data.comment));
                 const interval = setInterval(() => {
                     if (--count == 0) {
                         node.remove();
